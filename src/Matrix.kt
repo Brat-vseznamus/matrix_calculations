@@ -1,7 +1,8 @@
 import kotlin.math.max
+import kotlin.math.min
 
-class Matrix {
-    private var data : Array<DoubleArray>
+open class Matrix {
+    protected var data : Array<DoubleArray>
     private val n : Int
     private val m : Int
     constructor() {
@@ -72,9 +73,9 @@ class Matrix {
         }
     }
 
-    private fun elementCalculation(m : Matrix?, f : (Double, Double) -> Double) : Matrix? {
-        if (m == null || !checkSameSize(m)) {
-            return null
+    private fun elementCalculation(m : Matrix, f : (Double, Double) -> Double) : Matrix {
+        if (!checkSameSize(m)) {
+            return Matrix()
         }
         val res = Matrix(this.n, this.m)
         for (row in 0 until this.n) {
@@ -85,38 +86,54 @@ class Matrix {
         }
         return res
     }
-    private fun add(m : Matrix?) : Matrix? {
+    private fun add(m : Matrix) : Matrix {
         return elementCalculation(m) { x, y -> x + y }
     }
 
-    operator fun plus(m : Matrix?) : Matrix? {
+    operator fun plus(m : Matrix) : Matrix {
         return add(m)
     }
 
-    fun subtract(m : Matrix?) : Matrix? {
+    fun subtract(m : Matrix) : Matrix {
         return elementCalculation(m) { x, y -> x - y }
     }
 
-    operator fun minus(m: Matrix?) : Matrix? {
+    operator fun minus(m: Matrix) : Matrix {
         return subtract(m)
     }
 
-    private fun multiplyByNumber(k : Double) : Matrix? {
+    private fun multiplyByNumber(k : Double) : Matrix {
         return elementCalculation(this) { x, _ -> x * k }
     }
 
-    operator fun times(k : Double) : Matrix? {
+    operator fun times(k : Double) : Matrix {
         return multiplyByNumber(k)
     }
 
-    operator fun times(m : Matrix?) : Matrix? {
-        return fastMultiply(m)
+    operator fun times(m : Matrix) : Matrix {
+        val res = fastMultiply(m)
+        res.correctAccuracy()
+        return res
+    }
+
+    operator fun times(v : Vector) : Vector {
+        val res = multiply(v)
+        if (res.n != 0) {
+            val xs = DoubleArray(res.n) {0.0}
+            var i = 0
+            for (row in res.data) {
+                xs[i++] = row[0]
+            }
+            return Vector(*xs)
+        } else {
+            return Vector(0)
+        }
     }
 
     // slow version O(n^3)
-    private fun multiply(m : Matrix?) : Matrix? {
-        if (m == null || this.m != m.n) {
-            return null
+    private fun multiply(m : Matrix) : Matrix {
+        if (this.m != m.n) {
+            return Matrix()
         }
         val res = Matrix(this.n, m.m)
         for (row in 0 until this.n) {
@@ -131,9 +148,9 @@ class Matrix {
     }
 
     // O(n ^ (log2(7)))
-    fun fastMultiply(m : Matrix?) : Matrix? {
-        if (m == null || this.m != m.n) {
-            return null
+    private fun fastMultiply(m : Matrix) : Matrix {
+        if (this.m != m.n) {
+            return Matrix()
         }
 
         if (this.n == m.n
@@ -169,26 +186,25 @@ class Matrix {
         val a = createSubMatrices(m1)
         val b = createSubMatrices(m2)
 
-        val p1 = (a[0][0] + a[1][1])?.fastMultiply((b[0][0] + b[1][1]))!!
-        val p2 = (a[1][0] + a[1][1])?.fastMultiply(b[0][0])!!
-        val p3 = a[0][0].fastMultiply(b[0][1] - b[1][1])!!
-        val p4 = a[1][1].fastMultiply(b[1][0] - b[0][0])!!
-        val p5 = (a[0][0] + a[0][1])?.fastMultiply(b[1][1])!!
-        val p6 = (a[1][0] - a[0][0])?.fastMultiply(b[0][0] + b[0][1])!!
-        val p7 = (a[0][1] - a[1][1])?.fastMultiply(b[1][0] + b[1][1])!!
+        val p1 = (a[0][0] + a[1][1]).fastMultiply((b[0][0] + b[1][1]))
+        val p2 = (a[1][0] + a[1][1]).fastMultiply(b[0][0])
+        val p3 = a[0][0].fastMultiply(b[0][1] - b[1][1])
+        val p4 = a[1][1].fastMultiply(b[1][0] - b[0][0])
+        val p5 = (a[0][0] + a[0][1]).fastMultiply(b[1][1])
+        val p6 = (a[1][0] - a[0][0]).fastMultiply(b[0][0] + b[0][1])
+        val p7 = (a[0][1] - a[1][1]).fastMultiply(b[1][0] + b[1][1])
 
-        val c00 = p1 + (p4 + (p7 - p5))
+        val c00 = p1 + p4 + p7 - p5
         val c01 = p3 + p5
         val c10 = p2 + p4
-        val c11 = p1 + (p3 + (p6 - p2))
+        val c11 = p1 + p3 + p6 - p2
 
         val res = Matrix(exp, exp)
-        res.fitMatrix(c00!!, 0, 0, exp/2 - 1, exp/2 - 1)
-        res.fitMatrix(c01!!, 0, exp/2, exp/2 - 1, exp - 1)
-        res.fitMatrix(c10!!, exp/2, 0, exp - 1, exp/2 - 1)
-        res.fitMatrix(c11!!, exp/2, exp/2, exp - 1, exp - 1)
-
-        return res.subMatrix(0, 0, this.n - 1, m.m - 1)
+        res[0, 0, exp/2 - 1, exp/2 - 1] = c00
+        res[0, exp/2, exp/2 - 1, exp - 1] = c01
+        res[exp/2, 0, exp - 1, exp/2 - 1] = c10
+        res[exp/2, exp/2, exp - 1, exp - 1] = c11
+        return res[0, 0, this.n - 1, m.m - 1]
     }
 
     private fun subMatrix(i0: Int, j0: Int, i1: Int, j1: Int) : Matrix {
@@ -213,6 +229,18 @@ class Matrix {
         return data[index]
     }
 
+    operator fun get(i0: Int, j0: Int, i1: Int, j1: Int) : Matrix {
+        return subMatrix(i0, j0, i1, j1)
+    }
+
+    operator fun set(i0: Int, j0: Int, i1: Int, j1: Int, m: Matrix)  {
+        fitMatrix(m, i0, j0, i1, j1)
+    }
+
+    operator fun set(i0: Int, j0: Int, m: Matrix)  {
+        fitMatrix(m, i0, j0, min(this.n - 1, i0 + m.n), min(this.m - 1, j0 + m.m))
+    }
+
     override fun toString() : String {
         var res = ""
         for (row in 0 until this.n) {
@@ -225,8 +253,8 @@ class Matrix {
         return res
     }
 
-    private fun checkSameSize(m : Matrix?) : Boolean {
-        return m != null && this.n == m.n && this.m == m.m
+    private fun checkSameSize(m : Matrix) : Boolean {
+        return this.n == m.n && this.m == m.m
     }
 
     fun determinant() : Double? {
@@ -242,43 +270,42 @@ class Matrix {
             if (i % 2 != 0) {
                 aij *= -1.0
             }
-            val subMatrix = minor(0, i)!!
+            val subMatrix = minor(0, i)
             result += aij * subMatrix.determinant()!!
         }
         return result
     }
 
-    operator fun div(m: Matrix?) : Matrix? {
-        if (m == null) {
-            return null
-        }
-        val det = m.determinant()
+    operator fun div(m: Matrix) : Matrix {
+        val det = m.determinant() ?: return Matrix()
         if (det == 0.0
             || this.n != this.m
             || m.n != m.m
             || this.n != m.n) {
-            return null
+            return Matrix()
         }
         val res = Matrix(
             Array(n) {
                 i ->
                 DoubleArray(n) {
-                    j -> m.minor(i, j)!!.determinant()!! *
+                    j -> m.minor(i, j).determinant()!! *
                         if ((i + j) % 2 == 0)
                             1 else -1
                 }
             }
         )
-        return (this * res)!! * (1.0 / det!!)
+        val nres = ((this * res.transpose()) * (1.0 / det))
+        nres.correctAccuracy()
+        return nres
     }
 
-    fun invertible() : Matrix? {
+    fun invertible() : Matrix {
         return E(n) / this
     }
 
-    private fun minor(i: Int, j: Int) : Matrix? {
+    private fun minor(i: Int, j: Int) : Matrix {
         if (n != m) {
-            return null
+            return Matrix()
         }
         val subMatrix = Matrix(n - 1, n - 1)
         var realrow = 0
@@ -298,6 +325,21 @@ class Matrix {
             realrow++
         }
         return subMatrix
+    }
+
+    fun transpose() : Matrix {
+        val tr = Matrix(m, n)
+        for (i in 0 until n) {
+            for (j in 0 until m) {
+                tr[j][i] = this[i][j]
+            }
+        }
+        return tr
+    }
+
+    private fun correctAccuracy() {
+        val nm = elementCalculation(this) {x, _ -> getNearest(x)}
+        data = nm.data
     }
 
 }
