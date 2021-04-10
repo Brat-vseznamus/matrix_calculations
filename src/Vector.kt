@@ -11,6 +11,6 @@ class Vector(n : Int) : Matrix(n, 1) {
             str += "${x[0]}, "
         }
         str = str.dropLast(2)
-        return str + "]^T"
+        return "$str]^T"
     }
 }

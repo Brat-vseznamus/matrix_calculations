@@ -6,27 +6,27 @@ open class Matrix {
     private val n : Int
     private val m : Int
     constructor() {
-        n = 0;
-        m = 0;
+        n = 0
+        m = 0
         data = arrayOf()
     }
 
     constructor(n : Int, m : Int) {
-        this.n = n;
-        this.m = m;
+        this.n = n
+        this.m = m
         this.data = Array(n) {DoubleArray(m)}
     }
 
     constructor(x00 : Double) {
-        this.n = 1;
-        this.m = 1;
+        this.n = 1
+        this.m = 1
         this.data = arrayOf(doubleArrayOf(x00))
     }
 
     constructor(x00 : Double, x01 : Double,
                 x10 : Double, x11 : Double) {
-        this.n = 2;
-        this.m = 2;
+        this.n = 2
+        this.m = 2
         this.data = arrayOf(doubleArrayOf(x00, x01),
                             doubleArrayOf(x10, x11))
     }
@@ -34,16 +34,16 @@ open class Matrix {
     constructor(x00 : Double, x01 : Double, x02 : Double,
                 x10 : Double, x11 : Double, x12 : Double,
                 x20 : Double, x21 : Double, x22 : Double) {
-        this.n = 3;
-        this.m = 3;
+        this.n = 3
+        this.m = 3
         this.data = arrayOf(doubleArrayOf(x00, x01, x02),
                             doubleArrayOf(x10, x11, x12),
                             doubleArrayOf(x20, x21, x22))
     }
 
     constructor(data : Array<DoubleArray>) {
-        this.n = data.size;
-        this.m = data.maxOf { it -> it.size };
+        this.n = data.size
+        this.m = data.maxOf { it -> it.size }
         this.data = Array(n) {DoubleArray(m)}
         for (arr in data.indices) {
             for (ind in data[arr].indices) {
@@ -53,8 +53,8 @@ open class Matrix {
     }
 
     constructor(n : Int, m : Int, data : Array<DoubleArray>) {
-        this.n = n;
-        this.m = m;
+        this.n = n
+        this.m = m
         this.data = Array(n) {DoubleArray(m)}
         for (arr in data.indices) {
             for (ind in data[arr].indices) {
@@ -64,6 +64,13 @@ open class Matrix {
     }
 
     companion object {
+        /**
+         * Return identity matrix size of n
+         *
+         * @param n size
+         * @return identity matrix
+         *
+         * */
         fun E(n: Int) : Matrix {
             val e = Matrix(n, n)
             for (ind in 0 until n) {
@@ -73,6 +80,20 @@ open class Matrix {
         }
     }
 
+    fun getN() : Int {return n}
+    fun getM() : Int {return m}
+
+    /**
+     * Return new matrix where each element is result of applying appropriate cells
+     * of given matrix and this matrix.
+     *
+     * If matrices have different sizes return matrix with zero size
+     *
+     * @param m another matrix
+     * @param f function for calculate cells
+     * @return New matrix with appropriate cells of elementwise calculations
+     *
+     * */
     private fun elementCalculation(m : Matrix, f : (Double, Double) -> Double) : Matrix {
         if (!checkSameSize(m)) {
             return Matrix()
@@ -86,6 +107,16 @@ open class Matrix {
         }
         return res
     }
+
+    /**
+     * Return new matrix where each element is summation of appropriate cells.
+     *
+     * If matrices have different sizes return matrix with zero size
+     *
+     * @param m another matrix
+     * @return Matrix of summation of two matrices
+     *
+     * */
     private fun add(m : Matrix) : Matrix {
         return elementCalculation(m) { x, y -> x + y }
     }
@@ -94,7 +125,16 @@ open class Matrix {
         return add(m)
     }
 
-    fun subtract(m : Matrix) : Matrix {
+    /**
+     * Return new matrix where each element is subtraction of appropriate cells.
+     *
+     * If matrices have different sizes return matrix with zero size
+     *
+     * @param m another matrix
+     * @return Matrix of subtraction of two matrices
+     *
+     * */
+    private fun subtract(m : Matrix) : Matrix {
         return elementCalculation(m) { x, y -> x - y }
     }
 
@@ -102,6 +142,15 @@ open class Matrix {
         return subtract(m)
     }
 
+    /**
+     * Return new matrix where each element is enlarged k times.
+     *
+     * If matrices have different sizes return matrix with zero size
+     *
+     * @param k number for multiplication
+     * @return Matrix enlarged k times
+     *
+     * */
     private fun multiplyByNumber(k : Double) : Matrix {
         return elementCalculation(this) { x, _ -> x * k }
     }
@@ -148,6 +197,16 @@ open class Matrix {
     }
 
     // O(n ^ (log2(7)))
+    /**
+     * Return new matrix, which is multiplication of matrices.
+     *
+     * If matrices have different sizes of row and column size of appropriate
+     * matrices return matrix with zero size
+     *
+     * @param m another multiplication
+     * @return Multiplication of matrices
+     *
+     * */
     private fun fastMultiply(m : Matrix) : Matrix {
         if (this.m != m.n) {
             return Matrix()
@@ -207,6 +266,16 @@ open class Matrix {
         return res[0, 0, this.n - 1, m.m - 1]
     }
 
+    /**
+     * Return new sub matrix in specific corners.
+     *
+     * @param i0 number of top row
+     * @param j0 number of left column
+     * @param i1 number of bottom row
+     * @param j1 number of right column
+     * @return Sub matrix of this matrix with given corners
+     *
+     * */
     private fun subMatrix(i0: Int, j0: Int, i1: Int, j1: Int) : Matrix {
         val res = Matrix(i1 - i0 + 1, j1 - j0 + 1)
         for (i in 0..(i1 - i0)) {
@@ -217,6 +286,15 @@ open class Matrix {
         return res
     }
 
+    /**
+     * Add matrix values in sub matrix in specific corners.
+     *
+     * @param i0 number of top row
+     * @param j0 number of left column
+     * @param i1 number of bottom row
+     * @param j1 number of right column
+     *
+     * */
     private fun fitMatrix(m: Matrix, i0: Int, j0: Int, i1: Int, j1: Int) {
         for (i in 0..(i1 - i0)) {
             for (j in 0..(j1 - j0)) {
@@ -253,10 +331,22 @@ open class Matrix {
         return res
     }
 
+    /**
+     * Return result of comparing sizes of matrices
+     *
+     * @param m another matrix
+     * @return True if matrices have same sizes
+     *
+     * */
     private fun checkSameSize(m : Matrix) : Boolean {
         return this.n == m.n && this.m == m.m
     }
 
+    /**
+     * Return determinant of matrix.
+     *
+     * @return Determinate of matrix or null if matrix is not square
+     * */
     fun determinant() : Double? {
         if (n != m) {
             return null
@@ -276,6 +366,17 @@ open class Matrix {
         return result
     }
 
+    /**
+     * Return new matrix of division of matrices.
+     *
+     * If matrices have different sizes or if determination
+     * of another matrix is zero or if both of matrices are not squares
+     * return matrix with zero size
+     *
+     * @param m another matrix
+     * @return Matrix of division of matrices
+     *
+     * */
     operator fun div(m: Matrix) : Matrix {
         val det = m.determinant() ?: return Matrix()
         if (det == 0.0
@@ -298,18 +399,37 @@ open class Matrix {
         nres.correctAccuracy()
         return nres
     }
-
+    /**
+     * Return invertible matrix.
+     *
+     * If determination of matrix is zero or if matrix is not square
+     * return matrix with zero size
+     *
+     * @return Invertible matrix
+     *
+     * */
     fun invertible() : Matrix {
         return E(n) / this
     }
 
+    /**
+     * Return minor of matrix.
+     *
+     * If matrix is not square
+     * return matrix with zero size
+     *
+     * @param i row
+     * @param j column
+     * @return Minor of matrix
+     *
+     * */
     private fun minor(i: Int, j: Int) : Matrix {
         if (n != m) {
             return Matrix()
         }
         val subMatrix = Matrix(n - 1, n - 1)
         var realrow = 0
-        var realcol = 0
+        var realcol: Int
         for (row in 0 until (n - 1)) {
             realcol = 0
             if (row == i) {
@@ -327,6 +447,11 @@ open class Matrix {
         return subMatrix
     }
 
+    /**
+     * Return transpose matrix.
+     *
+     * @return Matrix transpose
+     * */
     fun transpose() : Matrix {
         val tr = Matrix(m, n)
         for (i in 0 until n) {
